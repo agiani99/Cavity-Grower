@@ -1,0 +1,35 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+env/
+
+# Local caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# PyInstaller and packaged app outputs
+build/
+dist/
+release/
+distribution.zip
+*.spec.bak
+
+# Generated molecule and analysis outputs
+out_sdf/
+sdf_out/
+sdf_out_*/
+postprocessed/
+postprocessed_*/
+Analysis_Cavities/PDB_LIGASE_HUMAN/
+Analysis_DeNovo/parameter_sweep_*/
+
+# Local viewer environment
+Viewer/docking_viewer_env/
+
+# OS/editor noise
+Thumbs.db
+.DS_Store

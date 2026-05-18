@@ -1,0 +1,5 @@
+# Ring fragment examples for --ring-smiles-file
+# Format: SMILES name
+c1ccccc1 Phenyl
+c1ccncc1 Pyridine
+C1CCNCC1 Piperidine
