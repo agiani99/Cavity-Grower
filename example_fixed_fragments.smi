@@ -1,0 +1,5 @@
+# Fixed fragment examples for --fixed-smiles-file
+# Format: SMILES name [attach_map_num]
+[C:1](=O)N Amide 1
+[O:1]C Methoxy 1
+[N:1](C)C Dimethylamino 1

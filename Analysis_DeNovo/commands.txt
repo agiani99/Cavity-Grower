@@ -1,0 +1,10 @@
+& "c:\Users\andrea.DESKTOP-26V6UN4\Documents\PDB_LIGAND\GLUERS\Claude\.venv\Scripts\python.exe" `
+  ".\sweep_de_novo_cavity_growth.py" `
+  --pdb-code 5IGO `
+  --du-index 0 `
+  --max-output 20 `
+  --output-root ".\parameter_sweep_5IGO_DU0_20_vina" `
+  --vina-enable `
+  --use-installed-adfr
+  
+   python .\analyze_sweep_results.py .\parameter_sweep_5IGO_DU0_20_vina\5IGO_DU0\5IGO_DU0_sweep_summary.csv --output-dir .\parameter_sweep_5IGO_DU0_20_vina

@@ -1,0 +1,25 @@
+
+@dataclass
+	class Config:
+    pdb_path:          str
+    du_index:          int   = 0
+    target_min:        int   = 16
+    target_max:        int   = 30
+    beam_width:        int   = 50
+    n_steps:           int   = 30
+    max_output:        int   = 200
+    qed_min:           float = 0.45
+    sa_max:            float = 5.5
+    clash_radius:      float = 1.2     # Å
+    cavity_radius:     float = 14.0    # Å  – atoms beyond this get penalised
+    n_embed_attempts:  int   = 10       # ETDG re-seeds on failure
+    max_attach:        int   = 4       # attachment points sampled per mol
+    max_frags:         int   = 8       # fragments tried per attachment point
+    seed:              int   = 42
+    use_rings:         bool  = True
+    ring_attach_rotate: bool = True    # try multiple ring atoms as attachment points
+    ring_attach_max:     int  = 4      # 0 = try all candidate ring atoms
+    mmff_opt:          bool  = True
+    verbose:           bool  = False
+    out_sdf:           str   = "cavity_designs.sdf"
+    out_csv:           str   = "cavity_designs.csv"

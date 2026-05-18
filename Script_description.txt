@@ -1,0 +1,181 @@
+Now I know the fix — use `coordMap={}` directly in `EmbedMolecule`. Let me patch that function:Now I'll replace `embed_constrained` with a translation-based approach that works reliably, plus adds random rotation for diversity:Also fix `_seed_beam` to use a manual conformer instead of relying on `EmbedMolecule` for a 1-atom molecule:The script works — the smoke test produced a valid molecule. Let me run a final check and copy to outputs:The working script (`de_novo_cavity_growth.py`) implements a **beam-search fragment grower** that anchors to the DU markers from your DoGSite output. Here's how the whole thing hangs together:
+
+---
+
+## Design philosophy
+
+| Stage | What happens |
+|---|---|
+| **Seed** | Single C atom placed *exactly* on the DU coordinate (cavity centre) |
+| **Grow** | Iterative beam-search: for each beam member, sample attachment points × fragment actions |
+| **Embed** | Free ETKDGv3 + MMFF, then translate so atom 0 stays on anchor; each retry also applies a random rotation, giving diverse cavity orientations |
+| **Filter** | Hard: ≤ 30% clash with protein atoms, ≤ 25% outside cavity sphere; then QED ≥ threshold, SA ≤ threshold |
+| **Score** | `composite = 0.40·QED + 0.35·SA_norm + 0.25·(1−clash) − 0.30·out_frac` |
+| **Harvest** | When HAC reaches `--target-min … --target-max` (default 16–20) |
+
+---
+
+## Fragment library built in
+
+**Single-atom**: C, N, O, S, C=O, C=N, C≡N  
+**Rings**: benzene, pyridine, furan, thiophene, imidazole, oxazole, cyclopropyl, cyclopentane, cyclohexane, piperidine, morpholine, pyrrolidine
+
+---
+
+## Typical usage on your project
+
+```bash
+# Standard run — all DU cavities in one PDB, first cavity
+python de_novo_cavity_growth.py \
+  --pdb dogsite_out/pdb_with_du/2FLU_DU.pdb \
+  --du-index 0 \
+  --beam-width 80   --n-steps 30 \
+  --max-attach 3    --max-frags 8 \
+  --target-min 16   --target-max 20 \
+  --qed-min 0.30    --sa-max 4.5 \
+  --cavity-radius 14.0 \
+  --seed 42 --verbose \
+  --out-sdf designs_2FLU.sdf \
+  --out-csv designs_2FLU.csv
+```
+
+**Key tuning knobs you control directly:**
+- `--qed-min` / `--sa-max` — the primary drug-likeness / synthesisability gates
+- `--beam-width` + `--max-attach` + `--max-frags` — throughput vs. diversity
+- `--cavity-radius` — tightness of spatial confinement
+- `--clash-radius` — how hard the protein wall is (1.0–1.8 Å typical)
+- `--no-rings` — atom-only growth for smaller, more linear scaffolds
+- `--du-index N` — target a different cavity in the same PDB
+
+
+Looking at the pipeline so far — E3 complex scan → DoGSite cavities → DU-anchored de novo growth — the logical next step is a post-processing and analysis script that takes the raw SDF output, computes a full descriptor profile, applies drug-likeness / PAINS filters, clusters by Tanimoto similarity to return a diverse final set, and draws a 2D inspection grid.
+
+
+---
+
+## Batch run (all PDBs in a folder, all DU markers)
+
+This repo includes a batch runner that will:
+- scan all `.pdb` files in a folder
+- detect how many `DU` markers are present in each PDB
+- skip PDBs with no `DU`
+- run `de_novo_cavity_growth.py` for every `DU` index found
+
+Outputs are automatically named:
+- `out_sdf/{PDB}_DU{index}_default.sdf`
+- `out_sdf/{PDB}_DU{index}_default.csv`
+
+### Windows (.bat)
+
+```bat
+run_all_pdb_dus.bat <pdb_folder> [extra de_novo args...]
+
+REM example:
+run_all_pdb_dus.bat .\pdbs --beam-width 80 --n-steps 40 --qed-min 0.30 --sa-max 4.5
+```
+
+### Python
+
+```bash
+python batch_run_pdb_dus.py --pdb-dir <pdb_folder> --out-dir .\out_sdf --suffix default -- [extra de_novo args...]
+```
+
+I’ll update the `ph4` term so it not only rewards matched features, but also penalizes “extra” ligand features that don’t find a complementary pocket site (e.g., adding many donors in a donor-rich / acceptor-poor pocket). I’ll keep it tunable via a single new CLI knob with a safe default.
+
+Generating patch (143 lines) in [](file:///c%3A/Users/andrea.DESKTOP-26V6UN4/Documents/PDB_LIGAND/GLUERS/Claude/de_novo_cavity_growth.py)
+
+
+```
+
+```
+
+
+Ran terminal command: import de_novo_cavity_growth as d; from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.MolFromSmiles('CC(=O)N'); m=Chem.AddHs(m); AllChem.EmbedMolecule(m, AllChem.ETKDGv3()); m=Chem.RemoveHs(m); print('ph4 legacy', d.calc_ph4_complement(m, {'acceptor': None}, 3.5, unmatched_weight=0.0)); print('ph4 penalized', d.calc_ph4_complement(m, {'acceptor': None}, 3.5, unmatched_weight=0.5))
+Completed with input: import de_novo_cavity_growth as d; from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.MolFromSmiles('CC(=O)N'); m=Chem.AddHs(m); AllChem.EmbedMolecule(m, AllChem.ETKDGv3()); m=Chem.RemoveHs(m); print('ph4 legacy', d.calc_ph4_complement(m, {'acceptor': None}, 3.5, unmatched_weight=0.0)); print('ph4 penalized', d.calc_ph4_complement(m, {'acceptor': None}, 3.5, unmatched_weight=0.5))
+
+That traceback indicates a syntax/indentation issue introduced around the updated `calc_ph4_complement` function. Next I’ll open that section of the file, fix the syntax precisely, and re-run the import test.
+
+Read [](file:///c%3A/Users/andrea.DESKTOP-26V6UN4/Documents/PDB_LIGAND/GLUERS/Claude/de_novo_cavity_growth.py#410-410), lines 410 to 475
+
+Generating patch (39 lines) in [](file:///c%3A/Users/andrea.DESKTOP-26V6UN4/Documents/PDB_LIGAND/GLUERS/Claude/de_novo_cavity_growth.py)
+
+
+```
+
+```
+
+It can help, but the fact you’re seeing almost the *same ratios for every DU* suggests the current residue-level ratios are too coarse (and/or dominated by small charged counts), so they won’t strongly differentiate cavities for scoring. I’ll quickly inspect cavity_env.csv to see what the distributions actually look like (counts vs ratios), then I’ll tell you what it implies and, if needed, make a small tweak so the metrics become more discriminative.
+
+Read [](file:///c%3A/Users/andrea.DESKTOP-26V6UN4/Documents/PDB_LIGAND/GLUERS/Claude/cavity_env.csv#1-1), lines 1 to 60
+
+Good catch. Before answering “will this help?”, I’ll compute quick summary stats (mean/std and range) from your cavity_env.csv to see whether those ratios truly collapse to constants or just *average* around 0.5, and then I’ll translate that into what it implies for the pharmacophore reward.
+
+Ran terminal command: import csv,math,statistics as st; from pathlib import Path; p=Path('cavity_env.csv'); rows=list(csv.DictReader(p.open()));
+
+def col(name):
+    vals=[]
+    for r in rows:
+        v=r.get(name,'')
+        if v in ('',None):
+            continue
+        try:
+            vals.append(float(v))
+        except: pass
+    return vals
+
+for name in ['pos_over_posneg','polar_over_polarapolar','aromatic_fraction','n_residues','n_pos','n_neg']:
+    vals=col(name)
+    if not vals:
+        print(name,'(no vals)');
+        continue
+    print(name,'n=',len(vals),'mean=',round(st.mean(vals),4),'stdev=',round(st.pstdev(vals),4),'min=',round(min(vals),4),'max=',round(max(vals),4))
+
+Yes — but mainly as a *diagnostic + calibration tool*, not as a full “pharmacophore model” by itself.
+
+From your cavity_env.csv (227 DU environments at 8 Å), these ratios are **not actually constant**; they just **average** around mid values:
+
+- `polar_over_polarapolar`: mean ≈ 0.561, stdev ≈ 0.136, range ≈ 0.077–0.941  
+- `pos_over_posneg`: mean ≈ 0.561, stdev ≈ 0.213, range 0–1  
+- `aromatic_fraction`: mean ≈ 0.135, stdev ≈ 0.092, range 0–0.474
+
+**What that tells you**
+- Your pockets (within 8 Å of DU) are, on average, **slightly polar-biased** and **slightly pos-biased**, but with **real variability** (especially for charge).
+- Aromatic residues are **generally low** around the anchors.
+
+**Will it help the growth/scoring?**
+- It helps you choose sensible defaults for the pharmacophore reward: prioritize **donor/acceptor and ionic complement**, don’t expect “aromatic stacking” to be the main driver in most pockets.
+- It also tells you there *are* pockets with extreme charge balance (pos_over_posneg near 0 or 1), where a complement reward should clearly differentiate cavities.
+
+**Important caveat**
+- These are **composition ratios**, not geometry. Two pockets can have similar ratios but very different *spatial arrangements* of donors/acceptors/charges — and that spatial pattern is what you want the growth to respond to.
+- Also: the current `ph4_complement` reward I added is mostly “reward matches”; it does **not strongly penalize** adding features when the pocket has no complement (e.g., aromatic-heavy ligands in low-aromatic pockets). If you want the cavity composition to actively steer chemistry, the next simple improvement is to count “unmatched ligand features” as negatives too.
+
+If you want, I can make that one small change to the `ph4` scoring so cavities with low aromatic/charge *explicitly discourage* ligands rich in those features (still lightweight, no docking/grid).
+
+Ran terminal command: import de_novo_cavity_growth as d; from rdkit import Chem; from rdkit.Chem import AllChem; m=Chem.MolFromSmiles('CC(=O)N'); m=Chem.AddHs(m); AllChem.EmbedMolecule(m, AllChem.ETKDGv3()); m=Chem.RemoveHs(m); print('ok import'); print('ph4', d.calc_ph4_complement(m, {}, 3.5, unmatched_weight=0.5))
+
+Checked [](file:///c%3A/Users/andrea.DESKTOP-26V6UN4/Documents/PDB_LIGAND/GLUERS/Claude/de_novo_cavity_growth.py), 10 problems found
+
+Updated the pharmacophore term so it also penalizes “unmatched” ligand features (extra donors/acceptors/charges/aromatics that don’t find a complementary pocket site).
+
+**What changed**
+- In de_novo_cavity_growth.py, `ph4` is no longer just `n_match / n_total`.
+- New formula (clamped to [0, 1]):
+
+  `raw = (n_match - w_unmatched * n_unmatched) / n_total`  
+  `ph4 = clamp(raw, 0, 1)`
+
+So if the ligand keeps adding features that don’t complement the cavity, `ph4` drops instead of staying “ok”.
+
+**New knob**
+- `--ph4-unmatched-weight` (default `0.5`)
+  - `0.0` reproduces the old behavior (reward-only, no penalty)
+  - Higher values penalize unmatched features more strongly
+
+**Example usage**
+- Moderate penalty (recommended starting point):
+  - `python de_novo_cavity_growth.py --pdb X.pdb --du-index 0 --ph4-weight 0.25 --ph4-unmatched-weight 0.5`
+- Legacy behavior:
+  - `python de_novo_cavity_growth.py --pdb X.pdb --du-index 0 --ph4-weight 0.25 --ph4-unmatched-weight 0.0`
+
+Made changes.
